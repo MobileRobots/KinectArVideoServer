@@ -2,7 +2,7 @@
 Adept MobileRobots Robotics Interface for Applications (ARIA)
 Copyright (C) 2004-2005 ActivMedia Robotics LLC
 Copyright (C) 2006-2010 MobileRobots Inc.
-Copyright (C) 2011-2014 Adept Technology
+Copyright (C) 2011-2015 Adept Technology
 
      This program is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -24,33 +24,36 @@ robots@mobilerobots.com or
 Adept MobileRobots, 10 Columbia Drive, Amherst, NH 03031; +1-603-881-7960
 */
 
-#include "Aria.h"
-#include "ArSystemStatus.h"
+//#include "Aria.h"
+//#include "ArSystemStatus.h"
 
-#include "ArVideo.h"
-#include "ArVideoConnector.h"
-#include "ArPTZConnector.h"
+//#include "ArVideo.h"
+//#include "ArVideoConnector.h"
+//#include "ArPTZConnector.h"
 
-#include "ArServerBase.h"
-#include "ArServerHandlerCommMonitor.h"
-#include "ArSystemStatus.h"
-#include "ArServerInfoStrings.h"
-#include "ArServerHandlerCommands.h"
+//#include "ArServerBase.h"
+//#include "ArServerHandlerCommMonitor.h"
+//#include "ArSystemStatus.h"
+//#include "ArServerInfoStrings.h"
+//#include "ArServerHandlerCommands.h"
 
-#ifndef WIN32
-#include "ArServerFileUtils.h"
-#endif
+//#ifndef WIN32
+//#include "ArServerFileUtils.h"
+//#endif
+
+#include <stdio.h>
 
 #include <opencv2/opencv.hpp>
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 //#include <libfreenect2/threading.h>
 
-#include "ArVideoOpenCV.h"
+//#include "ArVideoOpenCV.h"
 
 
 int main(int argc, char **argv)
 {
+#if 0
   Aria::init();
   ArVideo::init();  
 
@@ -110,7 +113,7 @@ int main(int argc, char **argv)
   ArVideo::createVideoServer(&server, &kinectDepthSource, "Kinect_Depth", "Kinect_Depth");
   ArVideo::createVideoServer(&server, &kinectRGBSource, "Kinect_RGB", "Kinect_RGB");
   ArVideo::createVideoServer(&server, &kinectIRSource, "Kinect_IR", "Kinect_IR");
-
+#endif
   
   /* Set up kinect */
   libfreenect2::Freenect2 freenect2;
@@ -119,7 +122,8 @@ int main(int argc, char **argv)
   if(kinectDev == 0)
   {
     std::cout << "no kinectDevice connected or failure opening the default one!" << std::endl;
-    Aria::exit(5);
+    //Aria::exit(5);
+    exit(5);
   }
 
   libfreenect2::SyncMultiFrameListener kinectListener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
@@ -132,11 +136,14 @@ int main(int argc, char **argv)
   std::cout << "kinectDevice serial: " << kinectDev->getSerialNumber() << std::endl;
   std::cout << "kinectDevice firmware: " << kinectDev->getFirmwareVersion() << std::endl;
 
+#if 0
   kinectDepthSource.open();
   kinectIRSource.open();
   kinectRGBSource.open();
+#endif
 
   /* Run ArNetworking server */
+#if 0
   if(!simpleOpener.open(&server))
   {
     ArLog::log(ArLog::Terse, "\nkinectArVideoServer: Error opening server on port %d!", server.getTcpPort());
@@ -145,6 +152,7 @@ int main(int argc, char **argv)
   }
   server.runAsync();
   ArLog::log(ArLog::Normal, "\nkinectArVideoServer: Server running and ready for client connections on port %d.\n", server.getTcpPort());
+#endif
   
   /* Loop reading Kinect frames */
   while(true)
@@ -159,11 +167,12 @@ int main(int argc, char **argv)
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
+#if 0
     // scale them down and provide copies to ArVideo sources 
     kinectRGBSource.updateVideoDataCopy(cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data) / 2000.0);
     kinectIRSource.updateVideoDataCopy(cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 2000.0);
     kinectDepthSource.updateVideoDataCopy(cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0);
-
+#endif
     kinectListener.release(kinectFrames);
   }
 
@@ -171,7 +180,7 @@ int main(int argc, char **argv)
   kinectDev->close();
 
 
-  Aria::exit(0);
+//  Aria::exit(0);
   return 0;
 }
 
