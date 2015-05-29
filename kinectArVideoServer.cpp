@@ -39,6 +39,11 @@
 #include "ArVideoOpenCV.h"
 #include "ArSystemStatus.h"
 
+
+const int resize_to_width = 320;
+const int resize_to_height =240;
+
+
 bool protonect_shutdown = false;
 
 void sigint_handler(int s)
@@ -54,6 +59,7 @@ void shutdown_app()
   // TODO: bad things will happen, if frame listeners are freed before dev->stop() :(
   freenect_dev->stop();
   freenect_dev->close();
+  Aria::exit(0);
 }
 
 int main(int argc, char *argv[])
@@ -61,6 +67,8 @@ int main(int argc, char *argv[])
 
   Aria::init();
   ArVideo::init();
+
+  ArArgumentParser argParser(&argc, argv);
 
   Aria::addExitCallback(new ArGlobalFunctor(&shutdown_app));
 
@@ -88,8 +96,15 @@ int main(int argc, char *argv[])
 
 
   ArServerBase server;
-  ArServerSimpleOpener openServer(NULL);
+  ArServerSimpleOpener openServer(&argParser);
+
+  argParser.loadDefaultArguments();
   
+  if(!Aria::parseArgs())
+  {
+    Aria::logOptions();
+    Aria::exit(3);
+  }
 
 
 
@@ -141,11 +156,16 @@ int main(int argc, char *argv[])
 
 
 
-  ArVideoOpenCV kinectDepthSource("Kinect_Depth");
-  ArVideo::createVideoServer(&server, &kinectDepthSource, "Kinect_Depth", "freenect2|Depth|OpenCV");
-  ArVideoOpenCV kinectRGBSource("Kinect_RGB");
-  ArVideo::createVideoServer(&server, &kinectRGBSource, "Kinect_RGB", "freenect2|RGB|OpenCV");
+  ArVideoOpenCV kinectDepthSource("Kinect_Depth|libfreenect2|OpenCV");
+  ArVideo::createVideoServer(&server, &kinectDepthSource, "Kinect_Depth|libfreenect2|OpenCV", "freenect2|Depth|OpenCV");
 
+  ArVideoOpenCV kinectRGBSource("Kinect_RGB|libfreenect2|OpenCV");
+  ArVideo::createVideoServer(&server, &kinectRGBSource, "Kinect_RGB|libfreenect2|OpenCV", "freenect2|RGB|OpenCV");
+
+//  ArVideoOpenCV kinectThreshSource("Kinect_Depth|libfreenect2|OpenCV_threshold");
+//  ArVideo::createVideoServer(&server, &kinectThreshSource, "Kinect_Depth|libfreenect2|OpenCV_threshold", "Kinect depth data with basic threshold applied");
+
+  printf("opening ArNetworking server...\n");
   if(!openServer.open(&server))
   {
     std::cout << "error opening ArNetworking server" << std::endl;
@@ -161,29 +181,44 @@ int main(int argc, char *argv[])
   bool first = true;
   while(!protonect_shutdown)
   {
-    std::cout << "." << std::flush;
-    listener.waitForNewFrame(frames);
+//    std::cout << "." << std::flush;
+    ArTime t;
+    listener.waitForNewFrame(frames); //, 30000);
+    if(t.secSince() >= 28) 
+    {  protonect_shutdown = true;
+      continue;
+    }
+    
+    
+//    printf("%d\n", t.secSince());
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
 //    libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
     // todo don't recreate Mat objects each time
     cv::Mat rgbm(rgb->height, rgb->width, CV_8UC3, rgb->data);
-    cv::Mat rgbm_small(rgb->height, rgb->width, CV_8UC3);
-    cv::resize (rgbm, rgbm_small, cv::Size(640, 480));
+    cv::Mat rgbm_small(resize_to_width, resize_to_height, CV_8UC3);
+    cv::resize (rgbm, rgbm_small, cv::Size(resize_to_width, resize_to_height));
 
     cv::Mat depthm(depth->height, depth->width, CV_32FC1, depth->data);
+    cv::Mat depthm_small(resize_to_width, resize_to_height, CV_8UC3);
+    cv::resize(depthm, depthm_small, cv::Size(resize_to_width, resize_to_height));
 
-    cv::imshow("rgb", rgbm_small);
+
+//    cv::Mat depth_thresh(depth->height, depth->width, CV_32FC1, depth->data);
+//    cv::threshold(depthm, depth_thresh, 0.4, 1.0, CV_THRESH_BINARY_INV);
+
+//    cv::imshow("rgb", rgbm_small);
 //    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    cv::imshow("depth", depthm / 4500.0f);
+//    cv::imshow("depth", depthm / 4500.0f);
 
     if(!kinectRGBSource.updateVideoDataCopy(rgbm_small, 1, CV_BGR2RGB))
       std::cout << "Warning error copying rgb data to ArVideo source" << std::endl;
-    if(!kinectDepthSource.updateVideoDataCopy(depthm/4500.0f, 255,
+    if(!kinectDepthSource.updateVideoDataCopy(depthm_small/4500.0f, 255,
 /*(1/255.0),*/ CV_GRAY2RGB))
       std::cout << "Warning error copying depth data to ArVideo source" << std::endl;
-  
+//    if(!kinectThreshSource.updateVideoDataCopy(depth_thresh, 255, CV_GRAY2RGB))
+//      std::cout << "Warning error copying depth thresholded data to ArVideo source" << std::endl;
     
     int key = cv::waitKey(1);
 
@@ -192,15 +227,18 @@ int main(int argc, char *argv[])
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
 
-    if(first)
-    {
-      first = false;
-      cv::moveWindow("rgb",   90, 85); 
-      cv::moveWindow("depth", 90, 599);
-    }
+//    if(first)
+//    {
+//      first = false;
+//      cv::moveWindow("rgb",   90, 85); 
+//      cv::moveWindow("depth", 90, 599);
+//    }
+
+    ArUtil::sleep(300);
   }
 
   shutdown_app();
 
+  Aria::exit(0);
   return 0;
 }
