@@ -179,6 +179,10 @@ int main(int argc, char *argv[])
   /* Main loop, capture images from kinect, display, copy to ArVideo sources */
 
   bool first = true;
+  cv::Mat rgbm_small(resize_to_width, resize_to_height, CV_8UC3);
+  cv::Mat depthm_small(resize_to_width, resize_to_height, CV_8UC3);
+  cv::Mat rgbm_flip(resize_to_width, resize_to_height, CV_8UC3);
+  cv::Mat depthm_flip(resize_to_width, resize_to_height, CV_8UC3);
   while(!protonect_shutdown)
   {
 //    std::cout << "." << std::flush;
@@ -197,12 +201,12 @@ int main(int argc, char *argv[])
 
     // todo don't recreate Mat objects each time
     cv::Mat rgbm(rgb->height, rgb->width, CV_8UC3, rgb->data);
-    cv::Mat rgbm_small(resize_to_width, resize_to_height, CV_8UC3);
     cv::resize (rgbm, rgbm_small, cv::Size(resize_to_width, resize_to_height));
+    cv::flip(rgbm_small, rgbm_flip, 1);
 
     cv::Mat depthm(depth->height, depth->width, CV_32FC1, depth->data);
-    cv::Mat depthm_small(resize_to_width, resize_to_height, CV_8UC3);
     cv::resize(depthm, depthm_small, cv::Size(resize_to_width, resize_to_height));
+    cv::flip(depthm_small, depthm_flip, 1);
 
 
 //    cv::Mat depth_thresh(depth->height, depth->width, CV_32FC1, depth->data);
@@ -212,17 +216,19 @@ int main(int argc, char *argv[])
 //    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
 //    cv::imshow("depth", depthm / 4500.0f);
 
-    if(!kinectRGBSource.updateVideoDataCopy(rgbm_small, 1, CV_BGR2RGB))
+    if(!kinectRGBSource.updateVideoDataCopy(rgbm_flip, 1, CV_BGR2RGB))
       std::cout << "Warning error copying rgb data to ArVideo source" << std::endl;
-    if(!kinectDepthSource.updateVideoDataCopy(depthm_small/4500.0f, 255,
+    if(!kinectDepthSource.updateVideoDataCopy(depthm_flip/4500.0f, 255,
 /*(1/255.0),*/ CV_GRAY2RGB))
       std::cout << "Warning error copying depth data to ArVideo source" << std::endl;
 //    if(!kinectThreshSource.updateVideoDataCopy(depth_thresh, 255, CV_GRAY2RGB))
 //      std::cout << "Warning error copying depth thresholded data to ArVideo source" << std::endl;
     
+/*
     int key = cv::waitKey(1);
 
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
+*/
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
