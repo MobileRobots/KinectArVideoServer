@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 //    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
 //    cv::imshow("depth", depthm / 4500.0f);
 
-    if(!kinectRGBSource.updateVideoDataCopy(rgbm_small, 1, CV_BGR2RGB))
+    if(!kinectRGBSource.updateVideoDataCopy(rgbm_flip, 1, CV_BGR2RGB))
       std::cout << "Warning error copying rgb data to ArVideo source" << std::endl;
     if(!kinectDepthSource.updateVideoDataCopy(depthm_flip/4500.0f, 255,
 /*(1/255.0),*/ CV_GRAY2RGB))
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 //      cv::moveWindow("depth", 90, 599);
 //    }
 
-    ArUtil::sleep(200);
+    //ArUtil::sleep(1);
   }
 
   shutdown_app();
