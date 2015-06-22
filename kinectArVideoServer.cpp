@@ -190,8 +190,10 @@ int main(int argc, char *argv[])
     ArTime t;
     listener.waitForNewFrame(frames); //, 30000);
     if(t.secSince() >= 28) 
-    {  protonect_shutdown = true;
-      continue;
+    {  
+      std::cout << "Warning: took more than 30 seconds to receive a frame from Kinect!" << std::endl;
+      //protonect_shutdown = true;
+      //continue;
     }
     
     
